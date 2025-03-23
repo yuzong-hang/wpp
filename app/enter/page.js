@@ -1,7 +1,8 @@
+// app/enter/page.js
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"; // 假設 Button 是你自己的組件
 
 export default function EnterdPage() {
   const [inputValue, setInputValue] = useState(""); // 儲存輸入框內容
@@ -15,34 +16,37 @@ export default function EnterdPage() {
 
   const handleSend = async () => {
     if (inputValue.trim() === "") return; // 如果輸入為空，不執行
-    
+
     // 更新前端訊息列表 (用戶發送的訊息)
-    setMessages(prevMessages => [
+    setMessages((prevMessages) => [
       ...prevMessages,
       { text: inputValue, sender: "user" },
     ]);
     setInputValue(""); // 清空輸入框
 
-    // 將訊息發送到後端 API
     try {
-      const response = await fetch("https://your-flask-api.onrender.com/", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: inputValue, sender: "user" }),
+        body: JSON.stringify({ message: inputValue }), // 傳送資料
       });
-
+    
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+    
       const data = await response.json();
-      console.log("後端回應:", data);
-
-      // 加入後端回應到訊息列表
-      setMessages(prevMessages => [
+      console.log("成功回應:", data);
+    
+      // 加入後端回應
+      setMessages((prevMessages) => [
         ...prevMessages,
         { text: data.reply, sender: "server" },
       ]);
     } catch (error) {
-      console.error("發送訊息失敗:", error);
+      console.error("發送訊息失敗:", error.message);
     }
   };
 
@@ -80,12 +84,20 @@ export default function EnterdPage() {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") handleSend(); // 按 Enter 發送
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSend(); // 按下 Enter 鍵時觸發 handleSend
+            }
           }}
           className="p-2 bg-white border rounded-lg shadow flex-grow"
           placeholder="輸入內容"
         />
-        <Button onClick={handleSend} className="ml-2">發送</Button>
+        <Button
+          onClick={handleSend} // 使用相同的 handleSend 函數
+          className="ml-2"
+        >
+          發送
+        </Button>
       </div>
     </div>
   );
