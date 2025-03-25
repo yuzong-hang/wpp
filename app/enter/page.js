@@ -4,18 +4,38 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button"; // 假設 Button 是你自己的組件
 
+const BACKEND_URL = "http://192.168.1.107:8000";  // ⚠️ 這裡改成你的後端 API
+
 export default function EnterdPage() {
   const [inputValue, setInputValue] = useState(""); // 儲存輸入框內容
   const [messages, setMessages] = useState([]); // 儲存對話內容
+  const [sessionId, setSessionId] = useState(null); // 存 session ID
   const messagesEndRef = useRef(null); // 訊息區域應該在新訊息加入時自動滾動到底部
 
   // 讓訊息區域自動滾動到底部
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
+
+  // 🚀 **首次載入時，向後端請求 session_id**
+  useEffect(() => {
+    async function fetchSessionId() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/new_session/`);
+        const data = await response.json();
+        setSessionId(data.session_id);
+      } catch (error) {
+        console.error("無法獲取 session_id:", error);
+      }
+    }
+    fetchSessionId();
+  }, []);
 
   const handleSend = async () => {
     if (inputValue.trim() === "") return; // 如果輸入為空，不執行
+    if (!sessionId) return alert("尚未獲取 session ID，請稍後再試！");
 
     // 更新前端訊息列表 (用戶發送的訊息)
     setMessages((prevMessages) => [
@@ -25,12 +45,12 @@ export default function EnterdPage() {
     setInputValue(""); // 清空輸入框
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch(`${BACKEND_URL}/chat/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: inputValue }), // 傳送資料
+        body: JSON.stringify({ session_id: sessionId, message: inputValue }), // 傳送 session_id 和訊息
       });
     
       if (!response.ok) {
@@ -43,7 +63,7 @@ export default function EnterdPage() {
       // 加入後端回應
       setMessages((prevMessages) => [
         ...prevMessages,
-        { text: data.reply, sender: "server" },
+        { text: data.content, sender: "server" },
       ]);
     } catch (error) {
       console.error("發送訊息失敗:", error.message);

@@ -14,6 +14,7 @@ export default async function handler(req, res) {
 
       const reply = `後端回應：${message}`;
       console.log("收到消息:", message); // 顯示收到的訊息
+      console.log("回應消息:", reply);
 
       res.status(200).json({ reply });
     } else {
